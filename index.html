@@ -596,7 +596,8 @@ function saveRecords(records) {
 function buildSyncPayload() {
   return JSON.stringify({
     records: JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'),
-    plans: JSON.parse(localStorage.getItem(PLANS_KEY || 'timer_plans') || '[]'),
+    plans: JSON.parse(localStorage.getItem('timer_plans') || '[]'),
+    deletedIds: JSON.parse(localStorage.getItem('timer_deleted_ids') || '[]'),
     updatedAt: new Date().toISOString()
   });
 }
@@ -647,19 +648,17 @@ async function syncPull(btn) {
     const file = r.files['timer-data.json'];
     if (!file) throw new Error('no file');
     const data = JSON.parse(file.content);
-    // 合并记录：本地删过记录时以本地为准，否则合并云端新增
-    const local = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    const cloud = data.records || [];
-    let merged;
-    if (local.length < cloud.length) {
-      // 本地记录比云端少，说明本地删过，以本地为准
-      merged = local;
-    } else {
-      const map = new Map();
-      [...cloud, ...local].forEach(r => map.set(r.startTime, r));
-      merged = [...map.values()];
-    }
-    saveRecords(merged.sort((a, b) => b.startTime.localeCompare(a.startTime)));
+    // 合并记录：按 startTime 去重，跳过已删除的 id
+    const localDeleted = JSON.parse(localStorage.getItem('timer_deleted_ids') || '[]');
+    const cloudDeleted = data.deletedIds || [];
+    const allDeleted = [...new Set([...localDeleted, ...cloudDeleted])];
+    const local = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]').filter(r => !allDeleted.includes(r.startTime));
+    const cloud = (data.records || []).filter(r => !allDeleted.includes(r.startTime));
+    const map = new Map();
+    [...cloud, ...local].forEach(r => map.set(r.startTime, r));
+    saveRecords([...map.values()].sort((a, b) => b.startTime.localeCompare(a.startTime)));
+    // 同步删除列表
+    localStorage.setItem('timer_deleted_ids', JSON.stringify(allDeleted));
     // 合并计划
     const localPlans = JSON.parse(localStorage.getItem('timer_plans') || '[]');
     const cloudPlans = data.plans || [];
@@ -1090,8 +1089,14 @@ function deleteRecord(id) {
   const records = loadRecords();
   const record = records.find(r => r.startTime === id);
   if (!record) return;
-  if (confirm(`确定要删除任务“${record.name}”的记录吗？`)) {
+  if (confirm(`确定要删除任务"${record.name}"的记录吗？`)) {
     saveRecords(records.filter(r => r.startTime !== id));
+    // 记录已删除的 id，同步时两边都跳过
+    const deleted = JSON.parse(localStorage.getItem('timer_deleted_ids') || '[]');
+    if (!deleted.includes(id)) {
+      deleted.push(id);
+      localStorage.setItem('timer_deleted_ids', JSON.stringify(deleted));
+    }
     renderHistory();
   }
 }
