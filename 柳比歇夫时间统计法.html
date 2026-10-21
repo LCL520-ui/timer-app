@@ -1,0 +1,1688 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>柳比歇夫时间统计法</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏱️</text></svg>">
+<link rel="manifest" href="data:application/manifest+json,{&quot;name&quot;:&quot;柳比歇夫时间统计法&quot;,&quot;short_name&quot;:&quot;时间统计&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;#EDF3E8&quot;,&quot;theme_color&quot;:&quot;#5B8C5A&quot;}">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+  :root {
+    --bg: #EDF3E8;
+    --paper: #F5F8F1;
+    --ink: #2E3B30;
+    --muted: #7E9280;
+    --primary: #5B8C5A;
+    --primary-dark: #4A7A4C;
+    --accent: #E8A33D;
+    --danger: #B5523F;
+    --line: #D7E2D2;
+    --soft: #EFF4E9;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(160deg, #EDF3E8 0%, #E3EBDD 100%);
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 10px;
+  }
+  .app {
+    position: relative;
+    background: linear-gradient(180deg, #F5F8F1, #EFF4E9);
+    border: 1px solid #D7E2D2;
+    width: 100%;
+    max-width: 400px;
+    border-radius: 24px;
+    box-shadow: 0 18px 45px rgba(40, 60, 42, 0.12), 0 2px 6px rgba(40, 60, 42, 0.07);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 95vh;
+    max-height: 940px;
+  }
+  .history-modal-head {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 16px; font-weight: 600; color: #3C5042;
+    padding: 4px 4px 12px; letter-spacing: .5px;
+  }
+  #recordList { flex: 1; overflow-y: auto; padding: 4px 2px; }
+  .app::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, #5B8C5A, #E8A33D);
+    z-index: 5;
+  }
+  .header { padding: 22px 15px 10px; text-align: center; background: transparent; position: relative; }
+  .header h1 { font-size: 18px; color: #2E3B30; margin-bottom: 6px; letter-spacing: 1px; }
+  .subtitle { font-size: 11px; color: #7E9280; margin-bottom: 12px; letter-spacing: 1.5px; }
+  .input-group { display: flex; gap: 8px; margin-bottom: 10px; }
+  .input-group input {
+    flex: 1; padding: 12px; border: 1px solid #C3D5BE;
+    border-radius: 12px; font-size: 16px; background: #fff;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .input-group input:focus {
+    outline: none; border-color: #5B8C5A;
+    box-shadow: 0 0 0 3px rgba(91, 140, 90, 0.18);
+  }
+  .input-group input:disabled { background: #EFF4E9; color: #8A9C8C; }
+  .btn {
+    padding: 12px 18px; border: none; border-radius: 12px;
+    font-size: 15px; font-weight: 600; cursor: pointer;
+    transition: 0.2s; white-space: nowrap; user-select: none;
+  }
+  .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+  .btn-primary { background: #5B8C5A; color: #fff; }
+  .btn-primary:active:not(:disabled) { background: #4A7A4C; }
+  .btn-secondary { background: #DEE7D9; color: #44564A; }
+  .btn-secondary:active:not(:disabled) { background: #D4DED0; }
+  .btn-danger { background: #B5523F; color: #fff; }
+  .btn-danger:active:not(:disabled) { background: #9E4836; }
+  .timer-display {
+    position: relative;
+    background: linear-gradient(160deg, #EAF2E4, #E2EBDD);
+    border: 1px solid #D3DFCE;
+    margin: 15px; padding: 14px 15px 16px;
+    border-radius: 16px; text-align: center;
+    box-shadow: inset 0 2px 8px rgba(80, 105, 80, 0.10);
+  }
+  .timer-status {
+    font-size: 11px; letter-spacing: 2px; color: #7E9280;
+    margin-bottom: 6px; min-height: 14px;
+  }
+  .timer-display.running .timer-status { color: #5B8C5A; }
+  .timer-clock {
+    font-family: 'Courier New', monospace; font-size: 46px;
+    font-weight: bold; letter-spacing: 2px; color: #2B3A2E;
+  }
+  .controls { display: flex; gap: 8px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap; padding: 0 15px; }
+  .history-section {
+    flex: 1; overflow-y: auto; margin: 15px 15px 15px 0;
+    background: #FAFCF6; border: 1px solid #DFE8D9;
+    border-radius: 16px; padding: 12px;
+  }
+  .section-title {
+    font-size: 15px; font-weight: 600; color: #3C5042;
+    margin-bottom: 10px; display: flex; justify-content: space-between;
+    align-items: center; letter-spacing: .5px;
+  }
+  .section-actions { display: flex; gap: 6px; align-items: center; }
+  .history-toggle { cursor: pointer; user-select: none; display: flex; align-items: center; gap: 6px; }
+  .history-toggle:hover { color: #5B8C5A; }
+  .toggle-count { font-size: 12px; color: #7E9280; font-weight: 400; }
+  .toggle-arrow { font-size: 11px; color: #7E9280; transition: transform .2s; }
+  .history-toggle.collapsed .toggle-arrow { transform: rotate(-90deg); }
+  .icon-btn {
+    padding: 6px 9px; font-size: 13px; border: none;
+    background: #E5ECE0; border-radius: 8px; cursor: pointer; color: #5C6E5E;
+    transition: .15s;
+  }
+  .icon-btn:hover { background: #D8E2D3; }
+  .record-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 8px; border-bottom: 1px solid #E3EADF; font-size: 14px;
+    border-radius: 10px; transition: background .15s;
+  }
+  .record-item:hover { background: #EFF4EA; }
+  .record-item:last-child { border-bottom: none; }
+  .record-info { flex: 1; min-width: 0; }
+  .record-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #2E3B30; }
+  .record-time { font-size: 12px; color: #7E9280; }
+  .record-duration { font-family: monospace; margin-right: 10px; flex-shrink: 0; color: #4C5B4E; }
+  .record-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .record-actions button {
+    padding: 6px 10px; font-size: 12px; border-radius: 8px;
+    border: none; background: #E2E9DC; cursor: pointer; opacity: .75;
+    transition: .15s;
+  }
+  .record-actions button:hover { opacity: 1; background: #D8E2D3; }
+  .app-footer {
+    padding: 0 0 14px; font-size: 11px; color: #9AAB98;
+    text-align: center; letter-spacing: 3px;
+  }
+  .hidden { display: none !important; }
+  /* ---------- 统计弹窗 ---------- */
+  .stats-modal {
+    position: fixed; inset: 0;
+    background: rgba(35, 50, 38, 0.55);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 100; padding: 14px;
+    backdrop-filter: blur(3px);
+  }
+  .stats-content {
+    background: #FAFCF6;
+    width: 100%; max-width: 900px;
+    height: 95vh; max-height: 940px;
+    border-radius: 24px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    box-shadow: 0 20px 50px rgba(35, 50, 38, 0.32);
+  }
+  .stats-body {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 20px 22px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .stats-body::-webkit-scrollbar { width: 8px; }
+  .stats-body::-webkit-scrollbar-thumb { background: #C3D5BE; border-radius: 4px; }
+  .stats-body::-webkit-scrollbar-thumb:hover { background: #AFC3AB; }
+  .stats-body::-webkit-scrollbar-track { background: transparent; }
+  .stats-body h3 {
+    font-size: 16px; color: #2E3B30;
+    border-bottom: 1px solid #DEE7D9; padding-bottom: 10px;
+  }
+  .stats-sub { font-size: 12px; color: #7E9280; font-weight: 400; margin-left: 6px; }
+  .stats-dim { display: flex; gap: 8px; }
+  .stats-dim button {
+    flex: 1; padding: 9px 0; border-radius: 10px;
+    border: 1px solid #D3DFCE; background: #EFF4E9;
+    font-size: 13px; color: #4E604F; cursor: pointer;
+    transition: 0.15s;
+  }
+  .stats-dim button.active {
+    background: #5B8C5A; color: #fff; border-color: #5B8C5A;
+    box-shadow: 0 3px 8px rgba(91, 140, 90, 0.28);
+  }
+  .period-nav { display: flex; align-items: stretch; gap: 8px; }
+  .period-btn {
+    width: 42px; border: 1px solid #D3DFCE; background: #EFF4E9;
+    border-radius: 10px; cursor: pointer; font-size: 16px; color: #4E604F;
+    transition: .15s;
+  }
+  .period-btn:hover:not(:disabled) { background: #D8E2D3; }
+  .period-btn:disabled { opacity: .35; cursor: not-allowed; }
+  .period-label {
+    flex: 1; border: 1px solid #D4E0CF; background: #EBF2E6; color: #4A7A4C;
+    border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer;
+    letter-spacing: .5px; padding: 8px 0;
+  }
+  .period-label:hover { background: #DCE6D5; }
+  .summary-cards { display: flex; gap: 8px; }
+  .summary-card {
+    flex: 1; min-width: 0; background: #EFF4E9;
+    border-radius: 12px; padding: 10px 8px; text-align: center;
+  }
+  .summary-card .num {
+    font-size: 13px; font-weight: 700; color: #2E3B30;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .summary-card .lbl { font-size: 11px; color: #8A9C8C; margin-top: 3px; }
+  .chart-card {
+    background: #EFF4E9;
+    border-radius: 14px;
+    padding: 14px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .chart-canvas-wrap {
+    flex: 0 0 auto;
+    width: 180px; height: 180px;
+    position: relative;
+  }
+  .chart-canvas-wrap canvas { width: 100%; height: 100%; display: block; }
+  .chart-tooltip {
+    position: absolute; pointer-events: none; z-index: 10;
+    background: rgba(46, 59, 48, 0.95); color: #F5F8F1;
+    padding: 8px 12px; border-radius: 10px; font-size: 12px; line-height: 1.6;
+    white-space: nowrap; box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+    transform: translate(-50%, -110%);
+  }
+  .chart-tooltip .tt-name { font-weight: 600; font-size: 13px; }
+  .chart-tooltip .tt-row { color: #C9D8C4; }
+  .chart-legend {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; gap: 7px;
+    max-height: 160px; overflow-y: auto;
+  }
+  .legend-item { display: flex; align-items: center; gap: 7px; font-size: 12px; }
+  .legend-dot { width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
+  .legend-name {
+    flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    color: #3C5042;
+  }
+  .legend-val {
+    font-family: monospace; color: #8A9C8C; font-size: 11px;
+    flex-shrink: 0;
+  }
+  .legend-dur {
+    color: #5C6E5E; font-size: 11px; font-weight: 600;
+    flex-shrink: 0;
+  }
+  .stats-groups {
+    display: flex; flex-direction: column;
+    border-radius: 12px;
+    border: 1px solid #DEE7D9;
+    overflow: hidden;
+  }
+  .group-item + .group-item { border-top: 1px solid #E2E9DD; }
+  .group-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 11px 12px; cursor: pointer;
+    transition: background 0.15s;
+    user-select: none;
+  }
+  .group-header:active { background: #EFF4EA; }
+  .group-arrow {
+    font-size: 10px; color: #9AAB98;
+    transition: transform 0.2s;
+    width: 12px; text-align: center;
+    display: inline-block;
+  }
+  .group-item.expanded .group-arrow { transform: rotate(90deg); }
+  .group-label {
+    font-size: 13px; font-weight: 600; color: #33443A;
+    flex: 0 0 auto; min-width: 88px;
+  }
+  .group-bar {
+    flex: 1; height: 6px; background: #D9E3D4;
+    border-radius: 3px; overflow: hidden; min-width: 30px;
+  }
+  .group-bar > span {
+    display: block; height: 100%;
+    background: linear-gradient(90deg, #5B8C5A, #5B8C5A);
+    border-radius: 3px;
+  }
+  .group-total {
+    font-family: monospace; font-size: 12px; color: #4C5B4E;
+    flex-shrink: 0;
+  }
+  .group-body {
+    display: none;
+    padding: 0 12px 10px 32px;
+  }
+  .group-item.expanded .group-body {
+    display: block;
+    animation: slideDown 0.2s ease;
+  }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .task-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 0; font-size: 12px;
+  }
+  .task-name {
+    flex: 0 0 84px; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
+    color: #33443A;
+  }
+  .task-bar {
+    flex: 1; height: 5px; background: #D9E3D4;
+    border-radius: 3px; overflow: hidden; min-width: 20px;
+  }
+  .task-bar-fill {
+    height: 100%; background: #6BA06B; border-radius: 3px;
+    transition: width 0.3s;
+  }
+  .task-dur { font-family: monospace; color: #6E8070; flex-shrink: 0; }
+  .task-pct { color: #9AAB98; flex-shrink: 0; width: 34px; text-align: right; }
+  /* ---------- 智能归类分析 ---------- */
+  #aiResult {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+  }
+  #aiResult.show { display: flex; }
+  .ai-title {
+    font-size: 14px; font-weight: 600; color: #33443A;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .ai-source { font-size: 11px; color: #7E9280; font-weight: 400; margin-left: 6px; }
+  .ai-categories { display: flex; flex-direction: column; gap: 2px; }
+  .ai-cat-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 0; border-bottom: 1px dashed #D6E0D1;
+  }
+  .ai-cat-row:last-child { border-bottom: none; }
+  .ai-cat-info { flex: 1; min-width: 0; }
+  .ai-cat-name { font-size: 13px; font-weight: 600; color: #2E3B30; }
+  .ai-cat-icon { margin-right: 3px; }
+  .ai-cat-tasks {
+    font-size: 11px; color: #7E9280;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    margin-top: 2px;
+  }
+  .ai-cat-bar { height: 4px; background: #D9E3D4; border-radius: 2px; overflow: hidden; margin-top: 4px; }
+  .ai-cat-bar > span { display: block; height: 100%; border-radius: 2px; }
+  .ai-cat-val { text-align: right; flex-shrink: 0; }
+  .ai-cat-dur { font-family: monospace; font-size: 12px; color: #4C5B4E; }
+  .ai-cat-pct { font-size: 11px; color: #5B8C5A; }
+  .ai-block {
+    background: #EBF2E6;
+    border: 1px solid #D4E0CF;
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 13px;
+    color: #2A4638;
+    line-height: 1.65;
+  }
+  .ai-block-title { font-weight: 600; margin-bottom: 4px; color: #4A7A4C; }
+  .ai-collapse {
+    background: #EBF2E6;
+    border: 1px solid #D4E0CF;
+    border-radius: 12px;
+    overflow: hidden;
+    font-size: 13px;
+  }
+  .ai-collapse summary {
+    cursor: pointer; list-style: none;
+    padding: 12px; font-weight: 600; color: #4A7A4C;
+    display: flex; align-items: center; justify-content: space-between;
+    user-select: none;
+  }
+  .ai-collapse summary::-webkit-details-marker { display: none; }
+  .ai-collapse summary::after {
+    content: '▾'; color: #7E9280; font-size: 12px;
+    transition: transform .2s;
+  }
+  .ai-collapse[open] summary::after { transform: rotate(180deg); }
+  .ai-collapse .ai-insights { padding: 0 12px 12px 30px; margin: 0; }
+  .ai-collapse .ai-summary { padding: 0 12px 12px; color: #33465F; line-height: 1.65; }
+  .ai-insights {
+    padding-left: 18px; font-size: 13px;
+    color: #3C5042; line-height: 1.7;
+  }
+  .ai-insights li { margin-bottom: 3px; }
+  /* ---------- 计划模块 ---------- */
+  .plan-btn {
+    position: absolute; top: 14px; right: 14px;
+    background: none; border: none; font-size: 17px;
+    cursor: pointer; opacity: .65; transition: .15s; padding: 4px;
+  }
+  .plan-btn:hover { opacity: 1; transform: rotate(10deg); }
+  .danmaku {
+    margin: 0 15px 10px; height: 32px; border-radius: 10px; overflow: hidden;
+    background: rgba(91, 140, 90, 0.10); border: 1px solid rgba(91, 140, 90, 0.20);
+    display: flex; align-items: center;
+  }
+  .danmaku-track {
+    width: 100%; text-align: center; padding: 0 10px;
+    font-size: 13px; font-weight: 600; color: #5B8C5A; letter-spacing: .5px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .plans-content { max-width: 640px; height: 86vh; max-height: 720px; }
+  .plans-content .stats-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .plans-content #planList { flex: 1; overflow-y: auto; }
+  .plan-form { display: flex; flex-direction: column; gap: 8px; }
+  .plan-form input {
+    padding: 11px; border: 1px solid #C3D5BE; border-radius: 10px;
+    font-size: 14px; background: #fff;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .plan-form input:focus {
+    outline: none; border-color: #5B8C5A;
+    box-shadow: 0 0 0 3px rgba(91, 140, 90, 0.18);
+  }
+  .plan-item {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 10px 4px; border-bottom: 1px solid #E3EADF;
+  }
+  .plan-item:last-child { border-bottom: none; }
+  .plan-star {
+    border: none; background: none; font-size: 17px; cursor: pointer;
+    padding: 0 3px; color: #C4D2BE; line-height: 1.3;
+  }
+  .plan-star.active { color: #E8A33D; }
+  .plan-info { flex: 1; min-width: 0; }
+  .plan-title {
+    font-size: 14px; font-weight: 600; color: #2E3B30;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .plan-title.done { text-decoration: line-through; color: #9AAB98; }
+  .plan-step {
+    font-size: 12px; color: #7E9280; margin-top: 2px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .plan-actions { display: flex; gap: 4px; flex-shrink: 0; }
+  .plan-actions button {
+    border: none; background: #E2E9DC; border-radius: 7px;
+    padding: 5px 8px; font-size: 12px; cursor: pointer; transition: .15s;
+  }
+  .plan-actions button:hover { background: #D8E2D3; }
+  .plan-empty { text-align: center; color: #7E9280; font-size: 13px; padding: 20px 0; }
+  .ai-note {
+    font-size: 11px; color: #8A9C8C; background: #EFF4E9;
+    border-radius: 8px; padding: 8px 10px; line-height: 1.5;
+  }
+  .modal-actions {
+    padding: 12px 18px;
+    border-top: 1px solid #DEE7D9;
+    background: #FAFCF6;
+    display: flex; gap: 8px;
+  }
+  .modal-actions .btn { flex: 1; padding: 11px 0; font-size: 13px; }
+  @media (max-width: 900px) {
+    .app-main { flex-direction: column; overflow-y: auto; }
+    .app-left { width: 100%; }
+    .history-section { margin: 0 15px 12px; }
+  }
+  @media (max-width: 420px) {
+    .chart-card { flex-direction: column; align-items: stretch; }
+    .chart-canvas-wrap { width: 140px; height: 140px; align-self: center; }
+    .chart-legend { max-height: none; }
+    .group-label { min-width: 74px; font-size: 12px; }
+    .task-name { flex-basis: 70px; }
+    .timer-clock { font-size: 38px; }
+    .summary-card .num { font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <button class="plan-btn" id="plansBtn" title="我的计划">📌</button>
+    <h1>⏱️ 柳比歇夫时间统计法</h1>
+    <div class="subtitle">情绪不是真相，先冷静10秒再行动</div>
+    <div class="input-group">
+      <input type="text" id="taskName" placeholder="输入任务名称...">
+      <button class="btn btn-primary" id="startBtn">开始</button>
+    </div>
+  </div>
+  <div class="danmaku hidden" id="danmakuBar">
+    <div class="danmaku-track" id="danmakuTrack"></div>
+  </div>
+  <div class="timer-display" id="timerWrap">
+    <div class="timer-status" id="timerStatus">待机中</div>
+    <div class="timer-clock" id="timerDisplay">00:00:00</div>
+  </div>
+  <div class="controls">
+    <button class="btn btn-secondary" id="historyOpenBtn">📋 历史记录<span id="historyCount"></span></button>
+    <button class="btn btn-danger" id="stopBtn" disabled>结束计时</button>
+    <button class="btn btn-secondary" id="statsBtn">📊 统计</button>
+    <button class="btn btn-secondary" id="syncBtn">☁️ 同步</button>
+  </div>
+  <div class="app-footer">记录时间 · 善待时间</div>
+</div>
+<input type="file" id="importFile" accept=".json,application/json" style="display:none">
+<div class="stats-modal hidden" id="historyModal">
+  <div class="stats-content">
+    <div class="history-modal-head">
+      <span>📋 历史记录</span>
+      <span class="section-actions">
+        <button class="icon-btn" id="manualAddBtn" title="补录一条记录">✚</button>
+        <button class="icon-btn" id="importBtn" title="导入记录（JSON）">⬇️</button>
+        <button class="icon-btn" id="exportBtn" title="导出记录（JSON）">⬆️</button>
+        <button class="icon-btn" id="closeHistoryBtn" title="关闭">✕</button>
+      </span>
+    </div>
+    <div id="recordList"></div>
+  </div>
+</div>
+<div class="stats-modal hidden" id="statsModal">
+  <div class="stats-content">
+    <div class="stats-body">
+      <h3>📊 时间统计<span class="stats-sub">柳比歇夫法</span></h3>
+      <div class="stats-dim" id="statsDim">
+        <button data-dim="day" class="active">今天你做了什么</button>
+        <button data-dim="week">这周你做了什么</button>
+        <button data-dim="month">这个月你做了什么</button>
+        <button data-dim="year">今年你做了什么</button>
+      </div>
+      <div class="period-nav">
+        <button class="period-btn" id="prevPeriodBtn" title="上一时段">‹</button>
+        <button class="period-label" id="periodLabelBtn" title="点击回到当前时段">今日</button>
+        <button class="period-btn" id="nextPeriodBtn" title="下一时段">›</button>
+      </div>
+      <div class="summary-cards" id="summaryCards"></div>
+      <div class="chart-card">
+        <div class="chart-canvas-wrap" id="chartCanvasWrap">
+          <canvas id="donutChart"></canvas>
+          <div id="chartTooltip" class="chart-tooltip hidden"></div>
+        </div>
+        <div class="chart-legend" id="chartLegend"></div>
+      </div>
+      <div class="stats-groups" id="statsGroups"></div>
+      <div id="aiResult"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="copyStatsBtn">📋 复制</button>
+      <button class="btn btn-primary" id="closeStatsBtn">关闭</button>
+    </div>
+  </div>
+</div>
+<div class="stats-modal hidden" id="plansModal">
+  <div class="stats-content plans-content">
+    <div class="stats-body">
+      <h3>📌 我的计划</h3>
+      <div class="plan-form">
+        <input type="text" id="planTitle" placeholder="我现在相信的真理是哪条？">
+        <input type="text" id="planStep" placeholder="口号是什么？">
+        <button class="btn btn-primary" id="addPlanBtn">添加计划</button>
+      </div>
+      <div id="planList"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="closePlansBtn">关闭</button>
+    </div>
+  </div>
+</div>
+<script>
+/* =========================================================
+   1. 数据存储
+   ========================================================== */
+const STORAGE_KEY = 'timer_records';
+function loadRecords() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map(r => ({
+        name: String(r && r.name || '').trim(),
+        startTime: r && r.startTime,
+        durationSeconds: Number(r && r.durationSeconds) || 0,
+        durationDisplay: r && r.durationDisplay
+      }))
+      .filter(r => r.name && r.startTime && r.durationSeconds >= 0);
+  } catch (e) { return []; }
+}
+function saveRecords(records) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+}
+
+/* =========================================================
+   2.5 GitHub Gist 云端同步
+   ========================================================== */
+function buildSyncPayload() {
+  return JSON.stringify({
+    records: JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'),
+    plans: JSON.parse(localStorage.getItem(PLANS_KEY || 'timer_plans') || '[]'),
+    updatedAt: new Date().toISOString()
+  });
+}
+async function gistApi(method, path, body) {
+  const res = await fetch('https://api.github.com' + path, {
+    method,
+    headers: {
+      'Authorization': 'token ' + GITHUB_TOKEN,
+      'Accept': 'application/vnd.github+json',
+      'Content-Type': 'application/json'
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!res.ok) throw new Error('GitHub API ' + res.status);
+  return res.json();
+}
+async function syncPush(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = '☁️ 同步中...'; }
+  try {
+    const content = buildSyncPayload();
+    if (!GIST_ID) {
+      // 首次：创建 Gist
+      const r = await gistApi('POST', '/gists', {
+        description: '柳比歇夫时间统计法数据',
+        public: false,
+        files: { 'timer-data.json': { content } }
+      });
+      GIST_ID = r.id;
+      localStorage.setItem('timer_gist_id', GIST_ID);
+    } else {
+      await gistApi('PATCH', '/gists/' + GIST_ID, {
+        files: { 'timer-data.json': { content } }
+      });
+    }
+    if (btn) { btn.textContent = '☁️ 已同步'; setTimeout(() => btn.textContent = '☁️ 同步', 1500); }
+  } catch (e) {
+    if (btn) { btn.textContent = '☁️ 同步失败'; setTimeout(() => btn.textContent = '☁️ 同步', 2000); }
+    console.error('sync push failed', e);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+async function syncPull(btn) {
+  if (!GIST_ID) { if (btn) btn.textContent = '☁️ 先推送一次'; return; }
+  if (btn) { btn.disabled = true; btn.textContent = '☁️ 拉取中...'; }
+  try {
+    const r = await gistApi('GET', '/gists/' + GIST_ID);
+    const file = r.files['timer-data.json'];
+    if (!file) throw new Error('no file');
+    const data = JSON.parse(file.content);
+    // 合并记录：按 startTime 去重，云端有的保留
+    const local = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    const cloud = data.records || [];
+    const map = new Map();
+    [...cloud, ...local].forEach(r => map.set(r.startTime, r));
+    saveRecords([...map.values()].sort((a, b) => b.startTime.localeCompare(a.startTime)));
+    // 合并计划
+    const localPlans = JSON.parse(localStorage.getItem('timer_plans') || '[]');
+    const cloudPlans = data.plans || [];
+    const pmap = new Map();
+    [...cloudPlans, ...localPlans].forEach(p => pmap.set(p.id, p));
+    localStorage.setItem('timer_plans', JSON.stringify([...pmap.values()]));
+    renderHistory(); renderPlans(); updateDanmaku();
+    if (btn) { btn.textContent = '☁️ 已拉取'; setTimeout(() => btn.textContent = '☁️ 同步', 1500); }
+  } catch (e) {
+    if (btn) { btn.textContent = '☁️ 拉取失败'; setTimeout(() => btn.textContent = '☁️ 同步', 2000); }
+    console.error('sync pull failed', e);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+/* =========================================================
+   2. 全局状态
+   ========================================================== */
+// ===== GitHub Gist 云端同步配置 =====
+const GITHUB_TOKEN = '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';
+let GIST_ID = 'f24101e78cda5de2c5176059f714cfff';
+
+let timerInterval = null;
+let startTime = 0;
+let currentTask = '';
+let isRunning = false;
+let currentDim = 'day';
+let currentPeriodOffset = 0;   // 0=当前时段，-1=上一时段，-2=上上时段…
+let currentStats = null;   // { groups, taskTotals, grandTotal, dim }
+let lastAnalysis = null;   // 最近一次智能分析结果（供复制用）
+const CHART_COLORS = ['#5B8C5A', '#E8A33D', '#8E86B0', '#D97662', '#7FB069', '#4FA8A0', '#7E9280'];
+
+/* =========================================================
+   3. DOM
+   ========================================================== */
+const taskNameInput = document.getElementById('taskName');
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+const timerWrap = document.getElementById('timerWrap');
+const timerStatus = document.getElementById('timerStatus');
+const timerDisplay = document.getElementById('timerDisplay');
+const recordList = document.getElementById('recordList');
+const historyCount = document.getElementById('historyCount');
+const historyModal = document.getElementById('historyModal');
+const closeHistoryBtn = document.getElementById('closeHistoryBtn');
+const syncBtn = document.getElementById('syncBtn');
+document.getElementById('historyOpenBtn').addEventListener('click', () => historyModal.classList.remove('hidden'));
+closeHistoryBtn.addEventListener('click', () => historyModal.classList.add('hidden'));
+historyModal.addEventListener('click', e => { if (e.target === historyModal) historyModal.classList.add('hidden'); });
+syncBtn.addEventListener('click', async () => {
+  await syncPull(syncBtn);
+  await syncPush(syncBtn);
+});
+// 页面加载后自动拉取一次
+window.addEventListener('load', () => { setTimeout(() => syncPull(syncBtn), 800); });
+const statsBtn = document.getElementById('statsBtn');
+const statsModal = document.getElementById('statsModal');
+const statsDim = document.getElementById('statsDim');
+const statsGroups = document.getElementById('statsGroups');
+const summaryCards = document.getElementById('summaryCards');
+const chartLegend = document.getElementById('chartLegend');
+const donutChart = document.getElementById('donutChart');
+const chartTooltip = document.getElementById('chartTooltip');
+const chartCanvasWrap = document.getElementById('chartCanvasWrap');
+donutChart.addEventListener('mousemove', e => {
+  if (!currentChartItems.length || !currentChartTotal) { chartTooltip.classList.add('hidden'); return; }
+  const rect = donutChart.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const squeeze = 0.55;
+  const thickness = 12;
+  const outerR = Math.min(rect.width, rect.height) / 2 - 10;
+  const innerR = outerR * 0.62;
+  const cx = rect.width / 2;
+  const cyTop = rect.height / 2 - thickness / 2;
+  const dx = x - cx;
+  const dy = (y - cyTop) / squeeze;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist < innerR || dist > outerR) { chartTooltip.classList.add('hidden'); return; }
+  let ang = Math.atan2(dy, dx) + Math.PI / 2;
+  if (ang < 0) ang += Math.PI * 2;
+  const sweepTotal = Math.PI * 2;
+  let acc = 0; let found = null;
+  const gap = 0.025;
+  for (const it of currentChartItems) {
+    const sweep = (it.secs / currentChartTotal) * sweepTotal;
+    const a1 = acc + gap / 2;
+    const a2 = acc + sweep - gap / 2;
+    if (ang >= a1 && ang <= a2) { found = it; break; }
+    acc += sweep;
+  }
+  if (!found) { chartTooltip.classList.add('hidden'); return; }
+  const pct = (found.secs / currentChartTotal * 100).toFixed(1);
+  chartTooltip.innerHTML = `<div class="tt-name">${escapeHtml(found.name)}</div><div class="tt-row">时长：${formatShortDuration(found.secs)}</div><div class="tt-row">占比：${pct}%</div>`;
+  chartTooltip.style.left = x + 'px';
+  chartTooltip.style.top = y + 'px';
+  chartTooltip.classList.remove('hidden');
+});
+donutChart.addEventListener('mouseleave', () => chartTooltip.classList.add('hidden'));
+const closeStatsBtn = document.getElementById('closeStatsBtn');
+const copyStatsBtn = document.getElementById('copyStatsBtn');
+const aiResult = document.getElementById('aiResult');
+const periodLabelBtn = document.getElementById('periodLabelBtn');
+const prevPeriodBtn = document.getElementById('prevPeriodBtn');
+const nextPeriodBtn = document.getElementById('nextPeriodBtn');
+const manualAddBtn = document.getElementById('manualAddBtn');
+const importBtn = document.getElementById('importBtn');
+const exportBtn = document.getElementById('exportBtn');
+const importFileInput = document.getElementById('importFile');
+
+/* =========================================================
+   4. 工具函数 + 本地智能引擎（纯逻辑，可独立测试）
+   ========================================================== */
+/* ==PURE-START== */
+function pad2(n) { return String(n).padStart(2, '0'); }
+function formatTime(seconds) {
+  const totalSecs = Math.floor(seconds);
+  const hrs = Math.floor(totalSecs / 3600);
+  const mins = Math.floor((totalSecs % 3600) / 60);
+  const secs = totalSecs % 60;
+  return `${pad2(hrs)}:${pad2(mins)}:${pad2(secs)}`;
+}
+function formatShortDuration(secs) {
+  const s = Math.max(0, Math.round(Number(secs) || 0));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) {
+    if (m > 0) return sec > 0 ? `${h}小时${m}分钟${sec}秒` : `${h}小时${m}分钟`;
+    return sec > 0 ? `${h}小时${sec}秒` : `${h}小时`;
+  }
+  if (m > 0) return sec > 0 ? `${m}分钟${sec}秒` : `${m}分钟`;
+  return `${sec}秒`;
+}
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/* ---------- 时段计算：按日/周/月/年定位起止 ---------- */
+const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
+function getWeekNumber(d) {
+  const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const dayNum = (day.getDay() + 6) % 7;
+  day.setDate(day.getDate() - dayNum + 3);
+  const firstThu = new Date(day.getFullYear(), 0, 4);
+  const firstDayNum = (firstThu.getDay() + 6) % 7;
+  firstThu.setDate(firstThu.getDate() - firstDayNum + 3);
+  return 1 + Math.round((day - firstThu) / (7 * 86400000));
+}
+function getPeriodRange(dim, offset) {
+  const now = new Date();
+  if (dim === 'day') {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
+    const start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const end = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+    return { start, end, label: `${d.getMonth() + 1}月${d.getDate()}日 周${WEEKDAYS[d.getDay()]}`, isCurrent: offset === 0 };
+  }
+  if (dim === 'week') {
+    const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const dayNum = (base.getDay() + 6) % 7;
+    base.setDate(base.getDate() - dayNum + offset * 7);
+    const start = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+    const end = new Date(base.getFullYear(), base.getMonth(), base.getDate() + 7);
+    return { start, end, label: `${start.getFullYear()}年 第${getWeekNumber(start)}周`, isCurrent: offset === 0 };
+  }
+  if (dim === 'month') {
+    const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    const start = new Date(d.getFullYear(), d.getMonth(), 1);
+    const end = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+    return { start, end, label: `${d.getFullYear()}年${d.getMonth() + 1}月`, isCurrent: offset === 0 };
+  }
+  const y = now.getFullYear() + offset;
+  const start = new Date(y, 0, 1);
+  const end = new Date(y + 1, 0, 1);
+  return { start, end, label: `${y}年`, isCurrent: offset === 0 };
+}
+
+/* ---------- 智能归类引擎：关键词打分归类 ---------- */
+const CATEGORY_DEFS = [
+  { name: '学习提升', icon: '📚', color: '#5B8C5A', keywords: ['学习','上课','听课','听讲','做题','刷题','作业','实验','代码','编程','看书','阅读','读书','背单词','英语','四级','六级','复习','预习','考试','备考','网课','论文','数学','高数','线代','概率','物理','化学','生物','计算机','大数据','java','python','linux','hadoop','spark','数据库','算法','数据结构','笔记','自习','图书馆','c语言','前端','后端','力扣','leetcode','口语','听力','写作','翻译','考研','教资','普通话','编程题','蓝桥杯','acm','刷网课'] },
+  { name: '工作实践', icon: '💼', color: '#E8A33D', keywords: ['工作','实习','打工','进厂','兼职','项目','开会','会议','报告','报表','方案','开发','修bug','测试','加班','值班','家教','创业','交接','培训','出差','周报','月报','答辩','面试','简历','招聘','搬砖','上班'] },
+  { name: '娱乐休闲', icon: '🎮', color: '#D97662', keywords: ['游戏','王者','吃鸡','蛋仔','原神','刷视频','看视频','抖音','快手','b站','bilibili','动漫','漫画','小说','网文','追剧','电视剧','电影','综艺','音乐','唱歌','听歌','直播','微博','小红书','贴吧','论坛','摸鱼','闲聊','玩','娱乐','放松','追番','switch','steam','lol','csgo','刷手机'] },
+  { name: '休息恢复', icon: '😴', color: '#7FB069', keywords: ['睡觉','午休','休息','小憩','打盹','冥想','补觉','躺','赖床','早起','熬夜','失眠','恢复','闭眼'] },
+  { name: '运动健康', icon: '🏀', color: '#4FA8A0', keywords: ['运动','跑步','健身','打球','篮球','足球','羽毛球','乒乓球','游泳','瑜伽','拉伸','锻炼','康复','骑行','爬山','跳绳','俯卧撑','仰卧起坐','深蹲','散步','快走','哑铃','理疗','按摩','髋','滑囊','复健','体测'] },
+  { name: '社交沟通', icon: '💬', color: '#8E86B0', keywords: ['社交','聊天','打电话','电话','视频通话','聚会','聚餐','约会','逛街','陪','朋友','同学','家人','微信','qq','相亲','团建','应酬','请教','交流','谈心','群聊'] },
+  { name: '生活事务', icon: '🏠', color: '#9AA878', keywords: ['吃饭','早餐','午餐','晚餐','做饭','洗碗','洗澡','洗漱','穿衣','穿鞋','收拾','打扫','洗衣','购物','买菜','取快递','快递','缴费','银行','排队','理发','看病','买药','办证','家务','护肤','面膜','上厕所'] },
+  { name: '交通通勤', icon: '🚌', color: '#6E93A8', keywords: ['交通','通勤','坐车','开车','公交','地铁','打车','滴滴','高铁','火车','飞机','骑车','走路','路上','去学校','回家','返校','出行','候车','等车','堵车','路程'] },
+  { name: '创作内容', icon: '✍️', color: '#C07C8E', keywords: ['写作','写文章','写小说','剪辑','剪视频','拍照','摄影','画画','设计','做ppt','做图','海报','自媒体','发视频','投稿','公众号','运营','视频号','文案','脚本','口播','修图','封面'] }
+];
+const OTHER_CATEGORY = { name: '其他事务', icon: '📌', color: '#8A9C8C' };
+
+/* 生活作息类：不计入"投入最多"和总结的主流向（可按需增删） */
+const ROUTINE_CATEGORIES = ['休息恢复', '生活事务', '交通通勤', '其他事务'];
+function isRoutineCategory(name) { return ROUTINE_CATEGORIES.indexOf(name) !== -1; }
+
+function matchCategory(taskName) {
+  const name = String(taskName).toLowerCase();
+  let best = null, bestScore = 0;
+  CATEGORY_DEFS.forEach(def => {
+    let score = 0;
+    def.keywords.forEach(kw => {
+      const k = String(kw).toLowerCase();
+      if (name.includes(k)) score += k.length >= 3 ? 2 : 1;
+    });
+    if (score > bestScore) { bestScore = score; best = def; }
+  });
+  return best || OTHER_CATEGORY;
+}
+
+/* "投入最多"卡片：排除生活作息类后的第一大任务 */
+function topInvestmentTask(taskTotals) {
+  const productive = taskTotals.filter(t => !isRoutineCategory(matchCategory(t.name).name));
+  return (productive.length ? productive[0] : taskTotals[0]) || null;
+}
+
+function buildLocalAnalysis(taskTotals, grandTotal) {
+  const catMap = new Map();
+  taskTotals.forEach(t => {
+    const def = matchCategory(t.name);
+    if (!catMap.has(def.name)) {
+      catMap.set(def.name, { name: def.name, icon: def.icon, color: def.color, tasks: [], total: 0 });
+    }
+    const c = catMap.get(def.name);
+    c.tasks.push(t.name);
+    c.total += t.secs;
+  });
+  const categories = Array.from(catMap.values()).sort((a, b) => b.total - a.total);
+  const catPct = {};
+  categories.forEach(c => { catPct[c.name] = grandTotal > 0 ? (c.total / grandTotal * 100) : 0; });
+  const focusCats = categories.filter(c => !isRoutineCategory(c.name));
+  const top = focusCats[0] || categories[0] || null;
+  const routineTotal = categories.filter(c => isRoutineCategory(c.name)).reduce((s, c) => s + c.total, 0);
+  const routinePct = grandTotal > 0 ? (routineTotal / grandTotal * 100) : 0;
+
+  const insights = [];
+  if (top) {
+    if (focusCats.length) {
+      insights.push(`主要时间投入在「${top.name}」（${catPct[top.name].toFixed(0)}%），这是当前时间结构的主基调。`);
+    } else {
+      insights.push('本周期几乎全是生活作息类记录（睡觉、吃饭、洗漱等），属于必要支出，不必焦虑。');
+    }
+  }
+  if (routinePct > 60) insights.push(`生活作息类（睡觉、吃饭、洗漱等）共占 ${routinePct.toFixed(0)}%，属必要支出；可关注其中能压缩的部分。`);
+  if ((catPct['娱乐休闲'] || 0) > 30) insights.push(`娱乐休闲占比 ${catPct['娱乐休闲'].toFixed(0)}%，超过健康水平，建议控制在 20% 以内。`);
+  if ((catPct['学习提升'] || 0) < 20 && grandTotal >= 3600) insights.push('学习提升占比不足 20%，建议每天固定 1-2 小时深度学习时段。');
+  if ((catPct['休息恢复'] || 0) < 5 && grandTotal >= 7200) insights.push('休息恢复时间偏少，长期如此容易疲劳，注意保证睡眠与休息。');
+  if ((catPct['生活事务'] || 0) > 30) insights.push('生活事务占用较多，建议集中批量处理，减少碎片切换。');
+  if ((catPct['交通通勤'] || 0) > 15) insights.push('通勤/路程耗时较多，可尝试利用通勤时间听网课或背单词。');
+  if ((catPct['社交沟通'] || 0) > 20) insights.push('社交时间占比偏高，注意与学习休息的平衡。');
+  const smallTasks = taskTotals.filter(t => t.secs < 600);
+  if (smallTasks.length >= 4) insights.push(`有 ${smallTasks.length} 个不足 10 分钟的小任务，时间较碎片化，建议合并同类小任务。`);
+  insights.push('每天结束时花 5 分钟复盘当天记录，是柳比歇夫法的核心动作。');
+
+  const nextSteps = [];
+  if ((catPct['娱乐休闲'] || 0) > 25) nextSteps.push({ title: '给娱乐设上限', detail: `娱乐占比 ${catPct['娱乐休闲'].toFixed(0)}%，为「娱乐休闲」设每日时长上限，超时强制停止。` });
+  if ((catPct['学习提升'] || 0) < 25) nextSteps.push({ title: '固定学习时段', detail: '每天固定一个不被打扰的学习时段（建议 90 分钟），到点即开始。' });
+  if ((catPct['休息恢复'] || 0) < 5) nextSteps.push({ title: '安排休息任务', detail: '主动把休息写进计划，每工作 45-60 分钟安排 10 分钟休息。' });
+  if (nextSteps.length < 3) {
+    const pool = focusCats.length ? focusCats : categories;
+    if (pool.length) {
+      const top2 = pool.slice(0, 2).map(c => c.name).join('、');
+      nextSteps.push({ title: '减少最大开销', detail: `重点关注「${top2}」的时间投入，每周减少 10% 并转入学习提升。` });
+    }
+  }
+  if (nextSteps.length < 3) nextSteps.push({ title: '每日复盘', detail: '每晚用 5 分钟对照当天记录，找出可优化项并写入明天计划。' });
+
+  const summary = top
+    ? (focusCats.length
+        ? `共 ${taskTotals.length} 项任务、总时长 ${formatShortDuration(grandTotal)}；主要投入「${top.name}」（${catPct[top.name].toFixed(0)}%）${(catPct['娱乐休闲'] || 0) > 25 ? '，娱乐偏多需收紧' : (catPct['学习提升'] || 0) < 20 ? '，学习投入不足需加码' : '，结构较为合理'}。`
+        : `共 ${taskTotals.length} 项任务、总时长 ${formatShortDuration(grandTotal)}；以生活作息为主（${routinePct.toFixed(0)}%），有效投入偏少。`)
+    : '暂无数据';
+
+  return { source: 'local', categories, summary, insights: insights.slice(0, 1), nextSteps: nextSteps.slice(0, 3) };
+}
+/* ==PURE-END== */
+
+/* =========================================================
+   5. 计时逻辑
+   ========================================================== */
+function updateDisplay() {
+  const elapsed = (Date.now() - startTime) / 1000;
+  timerDisplay.textContent = formatTime(elapsed);
+}
+function startTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(updateDisplay, 200);
+}
+function stopTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+}
+function handleVisibilityChange() {
+  if (document.hidden) {
+    stopTimer();
+  } else if (isRunning) {
+    updateDisplay();
+    startTimer();
+  }
+}
+function startTiming() {
+  const name = taskNameInput.value.trim();
+  if (!name) { alert('请先输入任务名称！'); return; }
+  currentTask = name;
+  startTime = Date.now();
+  isRunning = true;
+  startBtn.disabled = true;
+  stopBtn.disabled = false;
+  taskNameInput.disabled = true;
+  timerWrap.classList.add('running');
+  timerStatus.textContent = '⏱ ' + name;
+  updateDisplay();
+  startTimer();
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+}
+function stopTiming() {
+  if (!isRunning) return;
+  stopTimer();
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
+  const endTime = Date.now();
+  const finalElapsed = (endTime - startTime) / 1000;
+  const record = {
+    name: currentTask,
+    startTime: new Date(startTime).toISOString(),
+    durationSeconds: Math.round(finalElapsed * 1000) / 1000,
+    durationDisplay: formatTime(finalElapsed)
+  };
+  const records = loadRecords();
+  records.push(record);
+  saveRecords(records);
+  syncPush(null);
+  startBtn.disabled = false;
+  stopBtn.disabled = true;
+  taskNameInput.disabled = false;
+  taskNameInput.value = '';
+  currentTask = '';
+  isRunning = false;
+  timerWrap.classList.remove('running');
+  timerStatus.textContent = '待机中';
+  timerDisplay.textContent = '00:00:00';
+  renderHistory();
+}
+
+/* =========================================================
+   6. 历史记录
+   ========================================================== */
+function renderHistory() {
+  const records = loadRecords().sort((a, b) => b.startTime.localeCompare(a.startTime));
+  historyCount.textContent = records.length ? `（${records.length}）` : '';
+  if (!records.length) {
+    recordList.innerHTML = '<div style="padding:16px;text-align:center;color:#7E9280;font-size:13px;">暂无记录 · 输入任务名点击「开始」</div>';
+    return;
+  }
+  recordList.innerHTML = records.map(r => {
+    const date = new Date(r.startTime);
+    const dateStr = `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())} ${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(date.getSeconds())}`;
+    return `
+      <div class="record-item" data-id="${r.startTime}">
+        <div class="record-info">
+          <div class="record-name">${escapeHtml(r.name)}</div>
+          <div class="record-time">${dateStr}</div>
+        </div>
+        <div class="record-duration">${r.durationSeconds != null ? formatShortDuration(r.durationSeconds) : (r.durationDisplay || '')}</div>
+        <div class="record-actions">
+          <button class="rename-btn">✏️</button>
+          <button class="delete-btn">🗑️</button>
+        </div>
+      </div>`;
+  }).join('');
+  document.querySelectorAll('.record-item').forEach(item => {
+    const id = item.dataset.id;
+    item.querySelector('.rename-btn').addEventListener('click', () => renameRecord(id));
+    item.querySelector('.delete-btn').addEventListener('click', () => deleteRecord(id));
+  });
+}
+function renameRecord(id) {
+  const records = loadRecords();
+  const record = records.find(r => r.startTime === id);
+  if (!record) return;
+  const newName = prompt('修改任务名称：', record.name);
+  if (newName && newName.trim() && newName.trim() !== record.name) {
+    record.name = newName.trim();
+    saveRecords(records);
+    renderHistory();
+  }
+}
+function deleteRecord(id) {
+  const records = loadRecords();
+  const record = records.find(r => r.startTime === id);
+  if (!record) return;
+  if (confirm(`确定要删除任务“${record.name}”的记录吗？`)) {
+    saveRecords(records.filter(r => r.startTime !== id));
+    renderHistory();
+  }
+}
+
+/* =========================================================
+   7. 导出 / 导入 / 补录
+   ========================================================== */
+function exportRecords() {
+  const records = loadRecords();
+  if (!records.length) { alert('暂无记录可导出'); return; }
+  const payload = { app: '柳比歇夫时间统计法', version: 1, exportedAt: new Date().toISOString(), records };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `柳比歇夫时间记录_${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function importRecords(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      let list = Array.isArray(data) ? data : (data && Array.isArray(data.records) ? data.records : null);
+      if (!list) throw new Error('文件不是有效的记录文件');
+      list = list.filter(r => r && typeof r.name === 'string' && r.name.trim() && typeof r.durationSeconds === 'number' && r.startTime);
+      if (!list.length) throw new Error('文件中没有有效记录');
+      const existing = loadRecords();
+      const seen = new Set(existing.map(r => r.startTime));
+      let added = 0;
+      list.forEach(r => {
+        if (!seen.has(r.startTime)) {
+          existing.push({
+            name: String(r.name).trim(),
+            startTime: r.startTime,
+            durationSeconds: Number(r.durationSeconds),
+            durationDisplay: r.durationDisplay || formatTime(Number(r.durationSeconds))
+          });
+          seen.add(r.startTime);
+          added++;
+        }
+      });
+      saveRecords(existing);
+      renderHistory();
+      alert(`导入完成：新增 ${added} 条，跳过重复 ${list.length - added} 条。`);
+    } catch (e) {
+      alert('导入失败：' + (e.message || '未知错误'));
+    }
+  };
+  reader.onerror = () => alert('文件读取失败');
+  reader.readAsText(file);
+}
+function addManualRecord() {
+  const name = prompt('补录任务名称：');
+  if (!name || !name.trim()) return;
+  const dur = prompt('补录时长（分钟，可输入小数，如 25 或 0.5）：');
+  if (dur === null) return;
+  const mins = Number(dur);
+  if (!isFinite(mins) || mins <= 0) { alert('时长格式不正确'); return; }
+  const end = Date.now();
+  const start = end - mins * 60000;
+  const secs = Math.round(mins * 60);
+  const record = {
+    name: name.trim(),
+    startTime: new Date(start).toISOString(),
+    durationSeconds: secs,
+    durationDisplay: formatTime(secs)
+  };
+  const records = loadRecords();
+  records.push(record);
+  saveRecords(records);
+  renderHistory();
+  alert(`已补录「${record.name}」${formatShortDuration(secs)}`);
+}
+
+/* =========================================================
+   8. 统计：分组键 & 标签
+   ========================================================== */
+function getGroupKey(date, dim) {
+  const y = date.getFullYear();
+  if (dim === 'day') {
+    return `${y}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+  }
+  if (dim === 'week') {
+    const d = new Date(y, date.getMonth(), date.getDate());
+    const dayNum = (d.getDay() + 6) % 7;        // 周一 = 0
+    d.setDate(d.getDate() - dayNum + 3);        // 本周四
+    const firstThu = new Date(d.getFullYear(), 0, 4);
+    const firstDayNum = (firstThu.getDay() + 6) % 7;
+    firstThu.setDate(firstThu.getDate() - firstDayNum + 3);
+    const week = 1 + Math.round((d - firstThu) / (7 * 86400000));
+    return `${d.getFullYear()}-W${pad2(week)}`;
+  }
+  if (dim === 'month') {
+    return `${y}-${pad2(date.getMonth() + 1)}`;
+  }
+  return String(y);
+}
+function formatGroupLabel(key, dim) {
+  if (dim === 'day') {
+    const [y, m, d] = key.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+    return `${m}月${d}日 周${weekdays[date.getDay()]}`;
+  }
+  if (dim === 'week') {
+    const [y, w] = key.split('-W');
+    return `${y}年 第${Number(w)}周`;
+  }
+  if (dim === 'month') {
+    const [y, m] = key.split('-');
+    return `${y}年${Number(m)}月`;
+  }
+  return `${key}年`;
+}
+
+/* =========================================================
+   9. 统计：数据构建 & 渲染
+   ========================================================== */
+function buildChartItems(taskTotals) {
+  const MAX = 6;
+  const items = taskTotals.slice(0, MAX).map((t, i) => ({
+    name: t.name,
+    secs: t.secs,
+    color: CHART_COLORS[i % CHART_COLORS.length]
+  }));
+  const rest = taskTotals.slice(MAX);
+  if (rest.length > 0) {
+    const restTotal = rest.reduce((s, t) => s + t.secs, 0);
+    items.push({
+      name: '其他',
+      secs: restTotal,
+      color: CHART_COLORS[CHART_COLORS.length - 1]
+    });
+  }
+  return items;
+}
+function hexToRgb(hex) {
+  const h = hex.replace('#', '');
+  return { r: parseInt(h.slice(0,2),16), g: parseInt(h.slice(2,4),16), b: parseInt(h.slice(4,6),16) };
+}
+function shade(hex, amt) {
+  const { r, g, b } = hexToRgb(hex);
+  const f = v => Math.max(0, Math.min(255, Math.round(v + amt)));
+  return `rgb(${f(r)},${f(g)},${f(b)})`;
+}
+let currentChartItems = [];
+let currentChartTotal = 0;
+function drawDonut(canvas, items, total) {
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth || 180;
+  const h = canvas.clientHeight || 180;
+  canvas.width = Math.round(w * dpr);
+  canvas.height = Math.round(h * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  currentChartItems = items;
+  currentChartTotal = total;
+  const cx = w / 2;
+  const cy = h / 2;
+  const squeeze = 0.55;       // 垂直压缩（俯视角度）
+  const thickness = 12;        // 3D 厚度 px
+  const outerR = Math.min(w, h) / 2 - 10;
+  const innerR = outerR * 0.62;
+  const cyTop = cy - thickness / 2;
+  if (!total || items.length === 0) {
+    ctx.save();
+    ctx.translate(cx, cyTop);
+    ctx.scale(1, squeeze);
+    ctx.beginPath();
+    ctx.arc(0, 0, (outerR + innerR) / 2, 0, Math.PI * 2);
+    ctx.strokeStyle = '#D7E2D2';
+    ctx.lineWidth = outerR - innerR;
+    ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = '#7E9280';
+    ctx.font = '12px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('暂无数据', cx, cyTop);
+    return;
+  }
+  const startBase = -Math.PI / 2;
+  const gap = 0.025;
+  // 预计算每个扇区角度
+  const segs = items.map(item => {
+    const sweep = (item.secs / total) * Math.PI * 2;
+    return { item, sweep };
+  });
+  let angle = startBase;
+  // 先画侧面（厚度层）
+  ctx.save();
+  ctx.translate(cx, cyTop);
+  ctx.scale(1, squeeze);
+  const tOff = thickness / squeeze;
+  segs.forEach(seg => {
+    const a1 = angle + (segs.length > 1 ? gap / 2 : 0);
+    const a2 = angle + seg.sweep - (segs.length > 1 ? gap / 2 : 0);
+    if (a2 <= a1) { angle += seg.sweep; return; }
+    // 外圆侧面
+    ctx.beginPath();
+    ctx.arc(0, 0, outerR, a1, a2);
+    ctx.lineTo(outerR * Math.cos(a2), outerR * Math.sin(a2) + tOff);
+    ctx.arc(0, tOff, outerR, a2, a1, true);
+    ctx.closePath();
+    ctx.fillStyle = shade(seg.item.color, -55);
+    ctx.fill();
+    // 内孔侧面（暗色，增强内孔深度）
+    ctx.beginPath();
+    ctx.arc(0, 0, innerR, a1, a2);
+    ctx.lineTo(innerR * Math.cos(a2), innerR * Math.sin(a2) + tOff);
+    ctx.arc(0, tOff, innerR, a2, a1, true);
+    ctx.closePath();
+    ctx.fillStyle = shade(seg.item.color, -35);
+    ctx.fill();
+    angle += seg.sweep;
+  });
+  // 再画顶面
+  angle = startBase;
+  segs.forEach(seg => {
+    const a1 = angle + (segs.length > 1 ? gap / 2 : 0);
+    const a2 = angle + seg.sweep - (segs.length > 1 ? gap / 2 : 0);
+    if (a2 <= a1) { angle += seg.sweep; return; }
+    const grad = ctx.createLinearGradient(0, -outerR, 0, outerR);
+    grad.addColorStop(0, shade(seg.item.color, 42));
+    grad.addColorStop(0.5, seg.item.color);
+    grad.addColorStop(1, shade(seg.item.color, -18));
+    ctx.beginPath();
+    ctx.arc(0, 0, outerR, a1, a2);
+    ctx.arc(0, 0, innerR, a2, a1, true);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+    // 外侧高光
+    ctx.beginPath();
+    ctx.arc(0, 0, outerR - 0.5, a1, a2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    angle += seg.sweep;
+  });
+  ctx.restore();
+  const label = formatShortDuration(total);
+  let fontSize = Math.max(13, Math.round(w * 0.10));
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `600 ${fontSize}px -apple-system, sans-serif`;
+  while (ctx.measureText(label).width > innerR * 1.6 && fontSize > 9) {
+    fontSize--;
+    ctx.font = `600 ${fontSize}px -apple-system, sans-serif`;
+  }
+  ctx.fillStyle = '#2E3B30';
+  ctx.fillText(label, cx, cyTop - 5);
+  ctx.fillStyle = '#7E9280';
+  ctx.font = '11px -apple-system, sans-serif';
+  ctx.fillText('总时长', cx, cyTop + 13);
+}
+function renderLegend(items, total) {
+  if (items.length === 0) {
+    chartLegend.innerHTML = '<div style="color:#7E9280;font-size:12px;">暂无数据</div>';
+    return;
+  }
+  chartLegend.innerHTML = items.map(item => {
+    const pct = total > 0 ? (item.secs / total * 100) : 0;
+    return `
+      <div class="legend-item" title="${escapeHtml(item.name)} · ${formatShortDuration(item.secs)}">
+        <span class="legend-dot" style="background:${item.color}"></span>
+        <span class="legend-name">${escapeHtml(item.name)}</span>
+        <span class="legend-dur">${formatShortDuration(item.secs)}</span>
+        <span class="legend-val">${pct.toFixed(0)}%</span>
+      </div>`;
+  }).join('');
+}
+function renderSummaryCards(taskTotals, grandTotal, groups) {
+  const top = topInvestmentTask(taskTotals);
+  const spanUnit = currentDim === 'year' ? '月' : '天';
+  summaryCards.innerHTML = `
+    <div class="summary-card"><div class="num">${formatShortDuration(grandTotal)}</div><div class="lbl">⏱ 总时长</div></div>
+    <div class="summary-card"><div class="num">${taskTotals.length}</div><div class="lbl">✓ 任务数</div></div>
+    <div class="summary-card"><div class="num">${groups.length} ${spanUnit}</div><div class="lbl">📅 统计跨度</div></div>
+    <div class="summary-card"><div class="num" style="font-size:13px;">${top ? escapeHtml(top.name) : '—'}</div><div class="lbl">🎯 投入最多</div></div>`;
+}
+function renderGroups(groups) {
+  if (groups.length === 0) {
+    statsGroups.innerHTML = '<div style="padding:20px;text-align:center;color:#7E9280;font-size:13px;">暂无数据</div>';
+    return;
+  }
+  const maxTotal = Math.max(...groups.map(g => g.total), 1);
+  statsGroups.innerHTML = groups.map((g, idx) => {
+    const tasks = Object.entries(g.tasks)
+      .map(([name, secs]) => ({ name, secs }))
+      .sort((a, b) => b.secs - a.secs);
+    const tasksHtml = tasks.map(t => {
+      const pct = g.total > 0 ? (t.secs / g.total * 100) : 0;
+      return `
+        <div class="task-row">
+          <span class="task-name" title="${escapeHtml(t.name)}">${escapeHtml(t.name)}</span>
+          <span class="task-bar"><span class="task-bar-fill" style="width:${pct.toFixed(1)}%"></span></span>
+          <span class="task-dur">${formatShortDuration(t.secs)}</span>
+          <span class="task-pct">${pct.toFixed(0)}%</span>
+        </div>`;
+    }).join('');
+    const barPct = (g.total / maxTotal * 100).toFixed(1);
+    const expanded = idx === 0 ? 'expanded' : '';
+    return `
+      <div class="group-item ${expanded}">
+        <div class="group-header">
+          <span class="group-arrow">▶</span>
+          <span class="group-label">${formatGroupLabel(g.key, currentDim)}</span>
+          <span class="group-bar"><span style="width:${barPct}%"></span></span>
+          <span class="group-total">${formatShortDuration(g.total)}</span>
+        </div>
+        <div class="group-body">${tasksHtml}</div>
+      </div>`;
+  }).join('');
+  statsGroups.querySelectorAll('.group-header').forEach(header => {
+    header.addEventListener('click', () => {
+      header.parentElement.classList.toggle('expanded');
+    });
+  });
+}
+function renderPeriodNav(range) {
+  periodLabelBtn.textContent = range.label;
+  nextPeriodBtn.disabled = range.isCurrent;
+}
+function showStats(dim) {
+  if (dim && dim !== currentDim) {
+    currentDim = dim;
+    currentPeriodOffset = 0;
+  }
+  const all = loadRecords();
+  if (all.length === 0) {
+    alert('暂无记录，无法统计。');
+    return;
+  }
+  // 只统计当前所选时段（今天/本周/本月/本年）的记录
+  const range = getPeriodRange(currentDim, currentPeriodOffset);
+  const records = all.filter(r => {
+    const t = new Date(r.startTime).getTime();
+    return t >= range.start.getTime() && t < range.end.getTime();
+  });
+  // 更新维度按钮
+  statsDim.querySelectorAll('button').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.dim === currentDim);
+  });
+  statsModal.classList.remove('hidden');
+  renderPeriodNav(range);
+  if (records.length === 0) {
+    currentStats = null;
+    summaryCards.innerHTML = '';
+    chartLegend.innerHTML = '<div style="color:#7E9280;font-size:12px;">该时段暂无记录</div>';
+    requestAnimationFrame(() => drawDonut(donutChart, [], 0));
+    statsGroups.innerHTML = '<div style="padding:20px;text-align:center;color:#7E9280;font-size:13px;">该时段暂无记录，点 ◀ 可查看更早时段</div>';
+    aiResult.classList.remove('show');
+    aiResult.innerHTML = '';
+    return;
+  }
+  // 该时段任务总览
+  const taskMap = {};
+  records.forEach(r => {
+    taskMap[r.name] = (taskMap[r.name] || 0) + r.durationSeconds;
+  });
+  const taskTotals = Object.entries(taskMap)
+    .map(([name, secs]) => ({ name, secs }))
+    .sort((a, b) => b.secs - a.secs);
+  const grandTotal = taskTotals.reduce((s, t) => s + t.secs, 0);
+  // 时段内细分：日/周/月按天分组，年按月分组
+  const subDim = currentDim === 'year' ? 'month' : 'day';
+  const grouped = {};
+  records.forEach(r => {
+    const key = getGroupKey(new Date(r.startTime), subDim);
+    if (!grouped[key]) grouped[key] = { key, total: 0, tasks: {} };
+    grouped[key].total += r.durationSeconds;
+    grouped[key].tasks[r.name] = (grouped[key].tasks[r.name] || 0) + r.durationSeconds;
+  });
+  const groups = Object.values(grouped).sort((a, b) => b.key.localeCompare(a.key));
+  currentStats = { groups, taskTotals, grandTotal, dim: currentDim, periodLabel: range.label };
+  renderSummaryCards(taskTotals, grandTotal, groups);
+  const chartItems = buildChartItems(taskTotals);
+  renderLegend(chartItems, grandTotal);
+  requestAnimationFrame(() => drawDonut(donutChart, chartItems, grandTotal));
+  renderGroups(groups);
+  // 重置并运行本地智能分析
+  aiResult.classList.remove('show');
+  aiResult.innerHTML = '';
+  runLocalAnalysis();
+}
+
+/* =========================================================
+   10. 智能归类分析（本地引擎，离线秒出）
+   ========================================================== */
+function renderAnalysisResult(result) {
+  lastAnalysis = result;
+  const categories = result.categories || [];
+  if (!categories.length) {
+    aiResult.classList.remove('show');
+    return;
+  }
+  const grandTotal = currentStats ? currentStats.grandTotal : 0;
+  const catHtml = categories.map(c => {
+    const pct = grandTotal > 0 ? (c.total / grandTotal * 100) : 0;
+    const shown = c.tasks.slice(0, 4).map(escapeHtml).join(' · ');
+    const more = c.tasks.length > 4 ? ` …等${c.tasks.length}项` : '';
+    return `
+      <div class="ai-cat-row">
+        <div class="ai-cat-info">
+          <div class="ai-cat-name"><span class="ai-cat-icon">${c.icon || '📌'}</span>${escapeHtml(c.name)}</div>
+          <div class="ai-cat-tasks" title="${escapeHtml(c.tasks.join('、'))}">${shown}${more}</div>
+          <div class="ai-cat-bar"><span style="width:${pct.toFixed(1)}%;background:${c.color}"></span></div>
+        </div>
+        <div class="ai-cat-val">
+          <div class="ai-cat-dur">${formatShortDuration(c.total)}</div>
+          <div class="ai-cat-pct">${pct.toFixed(1)}%</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  aiResult.innerHTML = `
+    <div class="ai-title">🧠 智能归类分析 <span class="ai-source">⚡ 本地智能引擎 · 关键词归类 + 规则建议</span></div>
+    ${catHtml ? `<div class="ai-categories">${catHtml}</div>` : ''}
+  `;
+  aiResult.classList.add('show');
+}
+function runLocalAnalysis() {
+  if (!currentStats || !currentStats.taskTotals || currentStats.taskTotals.length === 0) return;
+  const { taskTotals, grandTotal } = currentStats;
+  renderAnalysisResult(buildLocalAnalysis(taskTotals, grandTotal));
+}
+
+/* =========================================================
+   11. 复制统计文本
+   ========================================================== */
+function copyStatsText() {
+  if (!currentStats) { alert('暂无统计数据'); return; }
+  const { groups, dim } = currentStats;
+  const dimNames = { day: '按日', week: '按周', month: '按月', year: '按年' };
+  let text = `【柳比歇夫时间统计 · ${dimNames[dim] || ''}${currentStats.periodLabel ? ' · ' + currentStats.periodLabel : ''}】\n`;
+  groups.forEach(g => {
+    text += `\n${formatGroupLabel(g.key, dim)}  总时长 ${formatShortDuration(g.total)}\n`;
+    Object.entries(g.tasks)
+      .sort((a, b) => b[1] - a[1])
+      .forEach(([name, secs]) => {
+        const pct = g.total > 0 ? (secs / g.total * 100).toFixed(1) : '0.0';
+        text += `  · ${name}  ${formatShortDuration(secs)}  ${pct}%\n`;
+      });
+  });
+  const done = () => alert('统计文本已复制到剪贴板！');
+  const fail = () => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); }
+    catch (e) { alert('复制失败，请手动选择文本'); }
+    ta.remove();
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(fail);
+  } else {
+    fail();
+  }
+}
+
+/* =========================================================
+   11.5 计划模块 & 主页弹幕提醒
+   ========================================================== */
+const PLANS_KEY = 'timer_plans';
+const planTitleInput = document.getElementById('planTitle');
+const planStepInput = document.getElementById('planStep');
+const addPlanBtn = document.getElementById('addPlanBtn');
+const planList = document.getElementById('planList');
+const plansModal = document.getElementById('plansModal');
+const closePlansBtn = document.getElementById('closePlansBtn');
+const plansBtn = document.getElementById('plansBtn');
+const danmakuBar = document.getElementById('danmakuBar');
+const danmakuTrack = document.getElementById('danmakuTrack');
+
+function loadPlans() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(PLANS_KEY));
+    return Array.isArray(raw) ? raw.filter(p => p && p.title) : [];
+  } catch (e) { return []; }
+}
+function savePlans(plans) { localStorage.setItem(PLANS_KEY, JSON.stringify(plans)); }
+
+// 取"最重要的一件事"：优先今日最重要（未完成），否则取最近未完成计划
+function getTopPlan(plans) {
+  const undone = plans.filter(p => !p.done);
+  if (!undone.length) return null;
+  const flagged = undone.filter(p => p.important);
+  const pool = (flagged.length ? flagged : undone).slice().sort((a, b) => b.createdAt - a.createdAt);
+  return pool[0];
+}
+
+function updateDanmaku() {
+  const top = getTopPlan(loadPlans());
+  if (!top) { danmakuBar.classList.add('hidden'); return; }
+  danmakuBar.classList.remove('hidden');
+  danmakuTrack.textContent = `🎯 ${top.title}｜${top.firstStep}`;
+}
+
+function renderPlans() {
+  const plans = loadPlans().sort((a, b) => {
+    if (a.important !== b.important) return a.important ? -1 : 1;
+    return b.createdAt - a.createdAt;
+  });
+  if (!plans.length) {
+    planList.innerHTML = '<div class="plan-empty">暂无计划，先添加一个吧</div>';
+    return;
+  }
+  planList.innerHTML = plans.map(p => `
+    <div class="plan-item" data-id="${p.id}">
+      <button class="plan-star ${p.important ? 'active' : ''}" title="设为今日最重要">${p.important ? '★' : '☆'}</button>
+      <div class="plan-info">
+        <div class="plan-title ${p.done ? 'done' : ''}">${escapeHtml(p.title)}</div>
+        <div class="plan-step" title="${escapeHtml(p.firstStep)}">第一步：${escapeHtml(p.firstStep)}</div>
+      </div>
+      <div class="plan-actions">
+        <button class="done-btn" title="${p.done ? '标记未完成' : '标记完成'}">${p.done ? '↩️' : '✅'}</button>
+        <button class="del-btn" title="删除">🗑️</button>
+      </div>
+    </div>`).join('');
+  planList.querySelectorAll('.plan-item').forEach(item => {
+    const id = item.dataset.id;
+    item.querySelector('.plan-star').addEventListener('click', () => togglePlanImportant(id));
+    item.querySelector('.done-btn').addEventListener('click', () => togglePlanDone(id));
+    item.querySelector('.del-btn').addEventListener('click', () => deletePlan(id));
+  });
+}
+function addPlan() {
+  const title = planTitleInput.value.trim();
+  const firstStep = planStepInput.value.trim();
+  if (!title) { alert('请填写计划内容'); return; }
+  if (!firstStep) { alert('请填写第一步（越具体越好，如：打开电脑 → 完成第 3 题）'); return; }
+  const plans = loadPlans();
+  plans.push({ id: 'p' + Date.now() + Math.random().toString(36).slice(2, 6), title, firstStep, important: false, done: false, createdAt: Date.now() });
+  savePlans(plans);
+  syncPush(null);
+  planTitleInput.value = '';
+  planStepInput.value = '';
+  renderPlans();
+  updateDanmaku();
+}
+function togglePlanImportant(id) {
+  const plans = loadPlans();
+  const target = plans.find(p => p.id === id);
+  if (!target) return;
+  if (!target.important) plans.forEach(p => p.important = false);
+  target.important = !target.important;
+  savePlans(plans);
+  renderPlans();
+  updateDanmaku();
+}
+function togglePlanDone(id) {
+  const plans = loadPlans();
+  const target = plans.find(p => p.id === id);
+  if (!target) return;
+  target.done = !target.done;
+  savePlans(plans);
+  renderPlans();
+  updateDanmaku();
+}
+function deletePlan(id) {
+  const plans = loadPlans();
+  const target = plans.find(p => p.id === id);
+  if (!target) return;
+  if (confirm(`删除计划「${target.title}」？`)) {
+    savePlans(plans.filter(p => p.id !== id));
+    renderPlans();
+    updateDanmaku();
+  }
+}
+
+/* =========================================================
+   12. 事件绑定 & 初始化
+   ========================================================== */
+function closeStats() {
+  statsModal.classList.add('hidden');
+}
+startBtn.addEventListener('click', startTiming);
+stopBtn.addEventListener('click', stopTiming);
+taskNameInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !isRunning) startTiming();
+});
+statsBtn.addEventListener('click', () => showStats(currentDim));
+closeStatsBtn.addEventListener('click', closeStats);
+copyStatsBtn.addEventListener('click', copyStatsText);
+statsDim.addEventListener('click', e => {
+  if (e.target.tagName === 'BUTTON') showStats(e.target.dataset.dim);
+});
+prevPeriodBtn.addEventListener('click', () => {
+  currentPeriodOffset--;
+  showStats(currentDim);
+});
+nextPeriodBtn.addEventListener('click', () => {
+  if (currentPeriodOffset < 0) {
+    currentPeriodOffset++;
+    showStats(currentDim);
+  }
+});
+periodLabelBtn.addEventListener('click', () => {
+  currentPeriodOffset = 0;
+  showStats(currentDim);
+});
+statsModal.addEventListener('click', e => {
+  if (e.target === statsModal) closeStats();
+});
+manualAddBtn.addEventListener('click', addManualRecord);
+exportBtn.addEventListener('click', exportRecords);
+importBtn.addEventListener('click', () => importFileInput.click());
+importFileInput.addEventListener('change', e => {
+  if (e.target.files && e.target.files[0]) importRecords(e.target.files[0]);
+  e.target.value = '';
+});
+window.addEventListener('beforeunload', e => {
+  if (isRunning) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+plansBtn.addEventListener('click', () => { renderPlans(); plansModal.classList.remove('hidden'); });
+closePlansBtn.addEventListener('click', () => plansModal.classList.add('hidden'));
+plansModal.addEventListener('click', e => { if (e.target === plansModal) plansModal.classList.add('hidden'); });
+addPlanBtn.addEventListener('click', addPlan);
+planTitleInput.addEventListener('keydown', e => { if (e.key === 'Enter') addPlan(); });
+planStepInput.addEventListener('keydown', e => { if (e.key === 'Enter') addPlan(); });
+// 初始化
+renderHistory();
+updateDanmaku();
+</script>
+</body>
+</html>
