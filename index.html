@@ -674,7 +674,7 @@ async function syncPull(btn) {
    ========================================================== */
 // ===== GitHub Gist 云端同步配置 =====
 let GITHUB_TOKEN = localStorage.getItem('github_token') || '';
-let GIST_ID = localStorage.getItem('timer_gist_id') || 'f24101e78cda5de2c5176059f714cfff';
+let GIST_ID = 'f24101e78cda5de2c5176059f714cfff';
 if (!GITHUB_TOKEN) {
   GITHUB_TOKEN = prompt('请输入你的 GitHub Token（只在这台设备保存一次）：');
   if (GITHUB_TOKEN) localStorage.setItem('github_token', GITHUB_TOKEN);
