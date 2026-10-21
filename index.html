@@ -712,7 +712,28 @@ syncBtn.addEventListener('click', async () => {
   await syncPush(syncBtn);
 });
 // 页面加载后自动拉取一次
-window.addEventListener('load', () => { setTimeout(() => syncPull(syncBtn), 800); });
+window.addEventListener('load', () => {
+  // 恢复被中断的计时
+  if (localStorage.getItem('timer_running') === '1') {
+    const savedStart = parseInt(localStorage.getItem('timer_start_time') || '0');
+    const savedTask = localStorage.getItem('timer_task_name') || '';
+    if (savedStart && savedTask) {
+      startTime = savedStart;
+      currentTask = savedTask;
+      isRunning = true;
+      taskNameInput.value = savedTask;
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      taskNameInput.disabled = true;
+      timerWrap.classList.add('running');
+      timerStatus.textContent = '⏱ ' + savedTask;
+      updateDisplay();
+      startTimer();
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    }
+  }
+  setTimeout(() => syncPull(syncBtn), 800);
+});
 const statsBtn = document.getElementById('statsBtn');
 const statsModal = document.getElementById('statsModal');
 const statsDim = document.getElementById('statsDim');
@@ -969,6 +990,10 @@ function startTiming() {
   currentTask = name;
   startTime = Date.now();
   isRunning = true;
+  // 存到 localStorage，防止页面被杀后丢状态
+  localStorage.setItem('timer_running', '1');
+  localStorage.setItem('timer_start_time', String(startTime));
+  localStorage.setItem('timer_task_name', name);
   startBtn.disabled = true;
   stopBtn.disabled = false;
   taskNameInput.disabled = true;
@@ -985,6 +1010,10 @@ function stopTiming() {
   document.removeEventListener('visibilitychange', handleVisibilityChange);
   const endTime = Date.now();
   const finalElapsed = (endTime - startTime) / 1000;
+  // 清除 localStorage 里的计时状态
+  localStorage.removeItem('timer_running');
+  localStorage.removeItem('timer_start_time');
+  localStorage.removeItem('timer_task_name');
   const record = {
     name: currentTask,
     startTime: new Date(startTime).toISOString(),
